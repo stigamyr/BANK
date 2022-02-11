@@ -1,46 +1,75 @@
 import PySimpleGUI as sg
-from PIL import Image    # installer med pip: py -m pip install pillow
-import io
+import mysql.connector
  
-# alle bilder som skal vises i GUI må loades via denne funksjonen, 
-def get_img_data(f, maxsize=(1200, 850)):
-    """
-    Generate image data using PIL
-    """
-    img = Image.open(f)
-    img.thumbnail(maxsize)
-    bio = io.BytesIO()
-    img.save(bio, format="PNG")
-    del img
-    return bio.getvalue()
+mydb = mysql.connector.connect(
+    host="127.0.0.1",
+    user="root",
+    passwd="",
+    database="bank_db"
+)  # egen bruker burde lages med tanke på sikkerhet, for innlogging i databasen
  
-sg.theme('BluePurple')
+mycursor = mydb.cursor() # oppretter tilkobling til databasen
  
-# load image data
-image1 = get_img_data('gui/car.png')  # her brukes funksjonen vi laget til å laste inn bildefilen i rett format
-
+def login_layout():
+    layout = [
+            [sg.Text('LOGIN')],
+            [sg.Text('Username: ')],[sg.Input(do_not_clear=True, key='-username-')],
+            [sg.Text('Password: ')],[sg.Input(password_char='*',do_not_clear=True, key='-password-')],
+            [sg.Text(key='-wrong_pw-')],
+            [sg.Button('Login'), sg.Button('Exit')]
+            ]
  
-layout = [
+    return layout
  
-        [sg.Image(image1, key='image_key')],
-        [sg.Text('Det du skriv kommer opp her:'), sg.Text(size=(15, 1), key='-OUTPUT-')],
-        [sg.Input(key='-IN-')],
-        [sg.Button('Show'), sg.Button('Show new image'), sg.Button('Exit')]
-]
+def bank_layout(name):
+    layout = [[sg.Text('Welcome', name)],
+              [sg.Text('Bank balance: '),sg.Text('-amountofmoney-')],
+              [sg.Button('Exit')]]
  
-window = sg.Window('Visning av bilde', layout)
+    return layout
  
-while True:  # Event Loop
-    event, values = window.read()
-    print(event, values)
-    if event in (None, 'Exit'):
+login_win = sg.Window('Magnemaker BANK', login_layout())
+ 
+my_id = ''
+ 
+login_active = True
+loginstate = False
+bank_active = False
+ 
+while True:
+    ev1, values1 = login_win.read(timeout=100)
+    if ev1 == sg.WIN_CLOSED or ev1 == 'Exit':
         break
-    if event == 'Show':
-        # Update the "output" text element to be the value of "input" element
-        window['-OUTPUT-'].update(values['-IN-'])
+        
+    if not bank_active and ev1 == 'Login':
+        username = values1['-username-']
+        pw = values1['-password-']
  
-    if event == 'Show new image':
-        # Update the "image" key to image2 
-        window['image_key'].update(image2)
+        sql = "SELECT username, password FROM users WHERE username =%s AND password = %s"
+        mycursor.execute(sql, (username, pw))
+        myresult = mycursor.fetchall()
+        
+        row_count = mycursor.rowcount
+        if row_count == 1:
+            sql = "SELECT username FROM users WHERE username =%s AND password = %s"
+            mycursor.execute(sql, (username, pw))
+            myresult = mycursor.fetchone()
  
-window.close()
+            myid = myresult[0]  # setter brukernavn inn i en variabel
+ 
+            loginstate = True
+            bank_active = True
+            bank_win = sg.Window(f'BANK - User: {myid}', bank_layout(myid))
+            login_win.close()
+            break
+ 
+        else:
+            login_win['-wrong_pw-'].update('Wrong password or username')
+        
+ 
+while bank_active and loginstate:
+    ev2, vals2 = bank_win.read(timeout=100)
+    if ev2 == sg.WIN_CLOSED or ev2 == 'Exit':
+        bank_active  = False
+        bank_win.close()
+ 

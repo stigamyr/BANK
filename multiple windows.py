@@ -34,7 +34,7 @@ while True:
     if ev1 == 'login':
         win1.Hide()
         win2_active = True 
-         win2 = sg.Window('Window 2', win2_layout())
+        win2 = sg.Window('Window 2', win2_layout())
 
         
     if not win2_active and ev1 == 'Launch 2':
