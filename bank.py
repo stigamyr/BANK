@@ -24,18 +24,6 @@ def win1_layout():
     [sg.Text(key='-wrong_pw-')],
     [sg.Button('Login'), sg.Button('Exit')]
         ]
-
-
-
-     
-    
-
-
-
-
-
-
-
     
     return layout1
 
@@ -66,7 +54,8 @@ def tab_layout():
             [sg.TabGroup(
                    [ [sg.Tab('Tab 1', tab1_layout()), sg.Tab('Tab 2', tab2_layout()) ]]
                 )],
-
+            [sg.Text("0",key='-penger-')],
+            [sg.Text("",key='-username-')],
             [sg.Button('Read')]
 
 
@@ -77,8 +66,15 @@ def tab_layout():
 
 def admin_win():
     admin = [
-    [sg.Text('usrname')],[sg.Input()],
-    [sg.Text('password')],[sg.Input()]
+    [sg.Text('Passord: ')],[sg.Input(password_char='*',do_not_clear=True, key='-password-')],
+    [sg.Text('persjonnummer')],[sg.Input(do_not_clear=True, key='-persjonnummer-')],
+    [sg.Text('brukernavn')],[sg.Input(do_not_clear=True, key='-username-')],
+    [sg.Text('fornavn')],[sg.Input(do_not_clear=True, key='-fornavn-')],
+    [sg.Text('eternavn')],[sg.Input(do_not_clear=True, key='-etternavn-')],
+    [sg.Text('admin = 1')],[sg.Input(do_not_clear=True, key='-admin-')],
+    [sg.Text('penger')],[sg.Input(do_not_clear=True, key='-penger-')],
+
+    [sg.Button('registrer')]
 ]
     return admin
 
@@ -135,20 +131,48 @@ while win1active:
 
                 win1.close()
 
-        else:
+
             win1['-wrong_pw-'].update('Wrong password or username')
+
+
+
+sql = f"SELECT penger FROM users WHERE username ='{myid}'"
+mycursor.execute(sql, (myid))
+myresult = mycursor.fetchone()
 
 
 while admin_active:
     if admin_active:
         ev3, vals3 = admin1.read(timeout=100)
+        event, values = admin1.read()
+        print(event, values)
+        if event == 'registrer':
+            password = values['-password-']    # -reg- er en key i layout
+            persjonnummer = values['-persjonnummer-']
+            brukernavn = values['-username-']
+            fornavn = values['-fornavn-']
+            etternavn = values['-etternavn-']
+            penger = values['-penger-']
+            admin = values['-admin-']
+            sql = "INSERT INTO user(password, persjonnummer, username, fornavn, etternavn, penger, admin) VALUES (%s, %s, %s, %s, %s, %s, %s)"
+            val = (password, persjonnummer, username, fornavn, penger ,admin)
+            mycursor.execute(sql, val)
+
+            mydb.commit()
+            print(mycursor.rowcount, "record inserted.")
+
+            sg.popup('The car was registered. Registration number:', persjonnummer)
         if ev3  == sg.WIN_CLOSED or ev3 == 'Exit':
             admin_active = False
-            admin1.close()               
+            admin1.close()            
+
+           
 
 
-while win2_active:
-    if win2_active:
+if win2_active:
+    ev2, vals2 = win2.read(timeout=100)         
+    win2['-penger-'].update(myid)
+    while win2_active:
         ev2, vals2 = win2.read(timeout=100)         
         if ev2  == sg.WIN_CLOSED or ev2 == 'Exit':
             win2_active = False
